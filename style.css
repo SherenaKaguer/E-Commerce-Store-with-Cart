@@ -1,0 +1,560 @@
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    color-scheme: dark;
+    font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(circle at top, rgba(109, 147, 255, 0.35), transparent 28%),
+                radial-gradient(circle at bottom left, rgba(255, 106, 106, 0.2), transparent 26%),
+                linear-gradient(180deg, #070b1f 0%, #0d122c 100%);
+    color: #f6f7ff;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: radial-gradient(circle at center, rgba(255, 255, 255, 0.04), transparent 35%);
+    pointer-events: none;
+}
+
+.page-shell {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 420px;
+    background: rgba(16, 22, 54, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 28px;
+    box-shadow: 0 34px 110px rgba(4, 13, 46, 0.35);
+    backdrop-filter: blur(18px);
+    padding: 34px;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+}
+
+.logo {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #7e8bff, #ff6b90);
+    color: #fff;
+    font-size: 1.35rem;
+    font-weight: 800;
+    box-shadow: 0 18px 40px rgba(126, 139, 255, 0.24);
+}
+
+.brand h1 {
+    margin: 0;
+    font-size: 1.35rem;
+}
+
+.brand p {
+    margin: 4px 0 0;
+    color: rgba(246, 247, 255, 0.74);
+    font-size: 0.95rem;
+}
+
+h2 {
+    margin: 0 0 16px;
+    font-size: 1.45rem;
+}
+
+.message {
+    margin-bottom: 18px;
+    padding: 14px 16px;
+    border-radius: 18px;
+    font-size: 0.95rem;
+}
+
+.message.success {
+    background: rgba(94, 213, 138, 0.14);
+    border: 1px solid rgba(94, 213, 138, 0.22);
+    color: #c8ffdf;
+}
+
+.message.error {
+    background: rgba(255, 88, 88, 0.14);
+    border: 1px solid rgba(255, 88, 88, 0.26);
+    color: #ffd6d6;
+}
+
+.field {
+    display: block;
+    margin-bottom: 18px;
+}
+
+.field span {
+    display: block;
+    margin-bottom: 8px;
+    color: rgba(246, 247, 255, 0.74);
+    font-size: 0.95rem;
+}
+
+input {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+input:focus {
+    border-color: rgba(126, 139, 255, 0.9);
+    box-shadow: 0 0 0 4px rgba(126, 139, 255, 0.14);
+    transform: translateY(-1px);
+}
+
+.password-wrap {
+    position: relative;
+}
+
+.toggle-password {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    border: none;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    font-size: 0.92rem;
+    border-radius: 999px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.toggle-password:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.btn {
+    width: 100%;
+    padding: 14px 16px;
+    border: none;
+    border-radius: 16px;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    background: linear-gradient(135deg, #7e8bff, #7c82ff 65%, #ca5bff);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 18px 40px rgba(126, 139, 255, 0.28);
+}
+
+.btn.danger {
+    background: linear-gradient(135deg, #ff5b78, #ff4a4a);
+}
+
+.secondary-link,
+.meta p a {
+    color: #c7d2ff;
+    text-decoration: none;
+}
+
+.secondary-link:hover,
+.meta p a:hover {
+    color: #fff;
+    text-decoration: underline;
+}
+
+.meta {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 22px;
+    color: rgba(246, 247, 255, 0.74);
+    font-size: 0.96rem;
+}
+
+.logout-text,
+.status-line {
+    margin: 0 0 18px;
+    color: rgba(246, 247, 255, 0.78);
+}
+
+@media (max-width: 520px) {
+    .auth-card {
+        padding: 24px;
+    }
+
+    .brand {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .meta {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+.shop-header {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 24px 0;
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.shop-brand {
+    max-width: 680px;
+}
+
+.logo-link {
+    color: #fff;
+    font-size: 2rem;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.tagline {
+    margin: 10px 0 0;
+    color: rgba(246, 247, 255, 0.74);
+    max-width: 700px;
+}
+
+.user-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-end;
+    color: rgba(246, 247, 255, 0.87);
+}
+
+.shop-layout {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 24px;
+    max-width: 1200px;
+    margin: 24px auto 48px;
+    padding: 0 24px;
+}
+
+.nav-panel,
+.catalog-panel {
+    background: rgba(16, 22, 54, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 28px;
+    box-shadow: 0 34px 110px rgba(4, 13, 46, 0.18);
+    padding: 24px;
+}
+
+.panel-block {
+    margin-bottom: 28px;
+}
+
+.panel-block:last-child {
+    margin-bottom: 0;
+}
+
+.panel-headline {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-end;
+    margin-bottom: 20px;
+}
+
+.section-note,
+.panel-note {
+    color: rgba(246, 247, 255, 0.72);
+    font-size: 0.95rem;
+}
+
+.category-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.category-link {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-radius: 16px;
+    color: #c7d2ff;
+    text-decoration: none;
+    background: rgba(255, 255, 255, 0.03);
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.category-link:hover,
+.category-link.active {
+    background: rgba(126, 139, 255, 0.18);
+    color: #fff;
+}
+
+.cart-table,
+.product-form,
+.review-form,
+.stock-form,
+.order-form {
+    display: grid;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.cart-row,
+.product-card,
+.order-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 18px;
+    display: grid;
+    gap: 12px;
+}
+
+.cart-row {
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: center;
+}
+
+.cart-qty {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 84px;
+}
+
+.cart-qty input,
+.variant-select select,
+.qty-select input,
+.review-form input,
+.stock-form input,
+.order-form select {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+}
+
+.cart-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.text-btn,
+.remove-link {
+    align-self: flex-end;
+    border: none;
+    background: transparent;
+    color: #9fb7ff;
+    cursor: pointer;
+    font-size: 0.95rem;
+    text-decoration: underline;
+    padding: 0;
+}
+
+.remove-link {
+    justify-self: end;
+}
+
+.cart-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+    padding: 16px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+}
+
+.product-card {
+    display: grid;
+    gap: 16px;
+}
+
+.product-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.category-badge {
+    display: inline-flex;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(126, 139, 255, 0.14);
+    color: #d6d8ff;
+    font-size: 0.85rem;
+}
+
+.stock-pill {
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    color: #fff;
+}
+
+.stock-pill.in-stock {
+    background: rgba(94, 213, 138, 0.16);
+}
+
+.stock-pill.out-stock {
+    background: rgba(255, 90, 90, 0.16);
+}
+
+.product-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    color: rgba(246, 247, 255, 0.82);
+}
+
+.variant-select,
+.qty-select,
+.review-form label,
+.stock-form label {
+    display: grid;
+    gap: 8px;
+}
+
+.variant-select span,
+.qty-select span,
+.review-form span,
+.stock-form span {
+    font-size: 0.95rem;
+    color: rgba(246, 247, 255, 0.78);
+}
+
+.review-panel,
+.stock-form {
+    margin-top: 10px;
+}
+
+.admin-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 10px;
+}
+
+.admin-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.order-grid {
+    display: grid;
+    gap: 16px;
+    margin-top: 18px;
+}
+
+.order-card {
+    gap: 14px;
+}
+
+.order-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.order-details {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: rgba(246, 247, 255, 0.78);
+}
+
+.status-pill {
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    color: #fff;
+}
+
+.status-pill.pending { background: rgba(255, 200, 70, 0.18); }
+.status-pill.paid { background: rgba(94, 213, 138, 0.18); }
+.status-pill.shipped { background: rgba(116, 160, 255, 0.18); }
+.status-pill.completed { background: rgba(99, 211, 136, 0.18); }
+.status-pill.cancelled { background: rgba(255, 105, 105, 0.18); }
+
+.empty-state {
+    padding: 40px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(246, 247, 255, 0.72);
+    text-align: center;
+}
+
+@media (max-width: 960px) {
+    .shop-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .product-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .shop-header,
+    .shop-layout {
+        padding: 16px;
+    }
+
+    .shop-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .user-summary {
+        align-items: flex-start;
+    }
+}
