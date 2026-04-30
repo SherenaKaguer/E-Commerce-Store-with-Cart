@@ -33,19 +33,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stock = (int)($_POST['stock'] ?? 0);
         $category_id = (int)($_POST['category_id'] ?? 0);
         $description = mysqli_real_escape_string($conn, $_POST['description'] ?? '');
+        $short_description = mysqli_real_escape_string($conn, $_POST['short_description'] ?? '');
         $image_url = mysqli_real_escape_string($conn, $_POST['image_url'] ?? '');
+        $compare_price = (float)($_POST['compare_price'] ?? 0);
+        $is_featured = isset($_POST['is_featured']) ? 1 : 0;
         $slug = strtolower(str_replace(' ', '-', $name));
         
         if ($name && $price > 0) {
-            mysqli_query($conn, "INSERT INTO products (name, slug, price, stock_quantity, category_id, description, image_url) 
-                                VALUES ('$name', '$slug', $price, $stock, $category_id, '$description', '$image_url')");
-            $success = "✅ Product '$name' added successfully!";
+            $query = "INSERT INTO products (name, slug, price, compare_price, stock_quantity, category_id, description, short_description, image_url, is_featured) 
+                      VALUES ('$name', '$slug', $price, $compare_price, $stock, $category_id, '$description', '$short_description', '$image_url', $is_featured)";
+            
+            if (mysqli_query($conn, $query)) {
+                $success = "✅ Product '$name' added successfully!";
+            } else {
+                $error = "❌ Error adding product: " . mysqli_error($conn);
+            }
         } else {
             $error = "❌ Product name and price are required.";
         }
     }
     
-    // PRODUCT: Update Price
+    // PRODUCT: Edit/Update Full Product
+    if ($action === 'edit_product') {
+        $id = (int)($_POST['product_id'] ?? 0);
+        $name = mysqli_real_escape_string($conn, $_POST['name'] ?? '');
+        $price = (float)($_POST['price'] ?? 0);
+        $compare_price = (float)($_POST['compare_price'] ?? 0);
+        $stock = (int)($_POST['stock'] ?? 0);
+        $category_id = (int)($_POST['category_id'] ?? 0);
+        $description = mysqli_real_escape_string($conn, $_POST['description'] ?? '');
+        $short_description = mysqli_real_escape_string($conn, $_POST['short_description'] ?? '');
+        $image_url = mysqli_real_escape_string($conn, $_POST['image_url'] ?? '');
+        $is_featured = isset($_POST['is_featured']) ? 1 : 0;
+        $is_active = isset($_POST['is_active']) ? 1 : 0;
+        $slug = strtolower(str_replace(' ', '-', $name));
+        
+        if ($name && $price > 0 && $id > 0) {
+            $query = "UPDATE products SET 
+                        name = '$name',
+                        slug = '$slug',
+                        price = $price,
+                        compare_price = $compare_price,
+                        stock_quantity = $stock,
+                        category_id = $category_id,
+                        description = '$description',
+                        short_description = '$short_description',
+                        image_url = '$image_url',
+                        is_featured = $is_featured,
+                        is_active = $is_active
+                      WHERE id = $id";
+            
+            if (mysqli_query($conn, $query)) {
+                $success = "✅ Product '$name' updated successfully!";
+            } else {
+                $error = "❌ Error updating product: " . mysqli_error($conn);
+            }
+        } else {
+            $error = "❌ Product name, price, and valid ID are required.";
+        }
+    }
+    
+    // PRODUCT: Update Price (quick edit)
     if ($action === 'update_price') {
         $id = (int)($_POST['product_id'] ?? 0);
         $price = (float)($_POST['price'] ?? 0);
@@ -53,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $success = "✅ Price updated!";
     }
     
-    // PRODUCT: Update Stock
+    // PRODUCT: Update Stock (quick edit)
     if ($action === 'update_stock') {
         $id = (int)($_POST['product_id'] ?? 0);
         $stock = (int)($_POST['stock'] ?? 0);
@@ -61,11 +109,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $success = "✅ Stock updated!";
     }
     
+    // PRODUCT: Toggle Status (Active/Inactive)
+    if ($action === 'toggle_status') {
+        $id = (int)($_POST['product_id'] ?? 0);
+        $current = (int)($_POST['current_status'] ?? 1);
+        $new = $current ? 0 : 1;
+        mysqli_query($conn, "UPDATE products SET is_active=$new WHERE id=$id");
+        $success = $new ? "✅ Product activated!" : "⛔ Product deactivated!";
+    }
+    
+    // PRODUCT: Toggle Featured
+    if ($action === 'toggle_featured') {
+        $id = (int)($_POST['product_id'] ?? 0);
+        $current = (int)($_POST['current_featured'] ?? 0);
+        $new = $current ? 0 : 1;
+        mysqli_query($conn, "UPDATE products SET is_featured=$new WHERE id=$id");
+        $success = $new ? "⭐ Product marked as featured!" : "📦 Product removed from featured!";
+    }
+    
     // PRODUCT: Delete
     if ($action === 'delete_product') {
         $id = (int)($_POST['product_id'] ?? 0);
-        mysqli_query($conn, "DELETE FROM products WHERE id=$id");
-        $success = "✅ Product deleted!";
+        
+        // Check if product exists before deleting
+        $check = mysqli_query($conn, "SELECT name FROM products WHERE id=$id");
+        if (mysqli_num_rows($check) > 0) {
+            $product = mysqli_fetch_assoc($check);
+            mysqli_query($conn, "DELETE FROM products WHERE id=$id");
+            $success = "✅ Product '" . $product['name'] . "' deleted!";
+        } else {
+            $error = "❌ Product not found!";
+        }
     }
     
     // ORDER: Update Status & Send Email
@@ -75,13 +149,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $allowed = ['pending', 'processing', 'paid', 'shipped', 'delivered', 'completed', 'cancelled'];
         
         if (in_array($status, $allowed)) {
-            // Get order and user details
             $order_query = mysqli_query($conn, "SELECT o.*, u.email, u.username FROM orders o JOIN users u ON o.user_id = u.id WHERE o.id = $order_id");
             $order = mysqli_fetch_assoc($order_query);
             
             mysqli_query($conn, "UPDATE orders SET status='$status' WHERE id=$order_id");
             
-            // Send email notification
             if ($order) {
                 $subject = "Order #{$order['order_number']} Status Update";
                 $message = "
@@ -110,7 +182,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </body></html>";
                 
                 sendOrderEmail($order['email'], $subject, $message);
-                $success = "✅ Order #$order_id updated to " . ucfirst($status) . " and email sent to customer!";
+                $success = "✅ Order #$order_id updated to " . ucfirst($status) . " and email sent!";
             } else {
                 $success = "✅ Order #$order_id updated to " . ucfirst($status);
             }
@@ -124,6 +196,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($name) {
             mysqli_query($conn, "INSERT INTO categories (name, slug) VALUES ('$name', '$slug')");
             $success = "✅ Category '$name' added!";
+        }
+    }
+    
+    // CATEGORY: Edit
+    if ($action === 'edit_category') {
+        $id = (int)($_POST['cat_id'] ?? 0);
+        $name = mysqli_real_escape_string($conn, $_POST['cat_name'] ?? '');
+        $slug = strtolower(str_replace(' ', '-', $name));
+        if ($name && $id > 0) {
+            mysqli_query($conn, "UPDATE categories SET name='$name', slug='$slug' WHERE id=$id");
+            $success = "✅ Category updated!";
         }
     }
     
@@ -209,6 +292,13 @@ $users = mysqli_fetch_all(mysqli_query($conn, "SELECT * FROM users WHERE role='u
 $coupons = mysqli_fetch_all(mysqli_query($conn, "SELECT * FROM coupons ORDER BY id DESC"), MYSQLI_ASSOC);
 
 $tab = $_GET['tab'] ?? 'dashboard';
+$edit_id = isset($_GET['edit']) ? (int)$_GET['edit'] : 0;
+$edit_product = null;
+
+if ($edit_id > 0) {
+    $edit_query = mysqli_query($conn, "SELECT * FROM products WHERE id = $edit_id");
+    $edit_product = mysqli_fetch_assoc($edit_query);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -387,6 +477,23 @@ $tab = $_GET['tab'] ?? 'dashboard';
         color: rgba(255, 255, 255, 0.4);
     }
 
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .checkbox-group label {
+        margin: 0;
+        cursor: pointer;
+    }
+
+    .checkbox-group input {
+        width: auto;
+        cursor: pointer;
+    }
+
     .btn {
         padding: 12px 24px;
         background: linear-gradient(135deg, #7e8bff, #ca5bff);
@@ -429,6 +536,15 @@ $tab = $_GET['tab'] ?? 'dashboard';
 
     .btn-delete:hover {
         background: rgba(255, 91, 120, 0.4);
+    }
+
+    .btn-success {
+        background: rgba(94, 213, 138, 0.2);
+        color: #5ed58a;
+    }
+
+    .btn-success:hover {
+        background: rgba(94, 213, 138, 0.4);
     }
 
     .premium-badge {
@@ -529,6 +645,19 @@ $tab = $_GET['tab'] ?? 'dashboard';
         color: #ff5b78;
     }
 
+    .action-buttons {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+    }
+
+    .product-image-preview {
+        max-width: 80px;
+        max-height: 80px;
+        border-radius: 8px;
+        object-fit: cover;
+    }
+
     @media (max-width: 768px) {
         .admin-content {
             padding: 20px;
@@ -536,6 +665,10 @@ $tab = $_GET['tab'] ?? 'dashboard';
 
         .stats-grid {
             grid-template-columns: repeat(2, 1fr);
+        }
+
+        .action-buttons {
+            flex-direction: column;
         }
     }
     </style>
@@ -549,7 +682,7 @@ $tab = $_GET['tab'] ?? 'dashboard';
                 <div class="admin-logo">🛒 ShopEasy Admin</div>
                 <div>
                     <span style="margin-right: 15px; color: white;">👋 <?= $admin_name ?></span>
-                    <a href="index.php" style="color: #7e8bff; margin-right: 15px;" target="_blank">View Store</a>
+                    <a href="index.php" style="color: #7e8bff; margin-right: 15px;">View Store</a>
                     <a href="logout.php" style="color: #ff5b78;">Logout</a>
                 </div>
             </div>
@@ -645,19 +778,117 @@ $tab = $_GET['tab'] ?? 'dashboard';
 
             <!-- PRODUCTS -->
             <?php if ($tab === 'products'): ?>
+
+            <!-- Edit Product Form (shown when editing) -->
+            <?php if ($edit_product): ?>
+            <div class="admin-card">
+                <h3>✏️ Edit Product: <?= htmlspecialchars($edit_product['name']) ?></h3>
+                <form method="POST">
+                    <input type="hidden" name="action" value="edit_product">
+                    <input type="hidden" name="product_id" value="<?= $edit_product['id'] ?>">
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Product Name *</label>
+                            <input type="text" name="name" value="<?= htmlspecialchars($edit_product['name']) ?>"
+                                required>
+                        </div>
+                        <div class="form-group">
+                            <label>Price *</label>
+                            <input type="number" name="price" step="0.01" value="<?= $edit_product['price'] ?>"
+                                required>
+                        </div>
+                        <div class="form-group">
+                            <label>Compare Price (Optional)</label>
+                            <input type="number" name="compare_price" step="0.01"
+                                value="<?= $edit_product['compare_price'] ?>">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Stock Quantity</label>
+                            <input type="number" name="stock" value="<?= $edit_product['stock_quantity'] ?>">
+                        </div>
+                        <div class="form-group">
+                            <label>Category</label>
+                            <select name="category_id">
+                                <option value="0">-- None --</option>
+                                <?php foreach ($categories as $cat): ?>
+                                <option value="<?= $cat['id'] ?>"
+                                    <?= ($edit_product['category_id'] == $cat['id']) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($cat['name']) ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Image URL</label>
+                            <input type="text" name="image_url"
+                                value="<?= htmlspecialchars($edit_product['image_url']) ?>" placeholder="https://...">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Short Description</label>
+                            <textarea name="short_description"
+                                rows="2"><?= htmlspecialchars($edit_product['short_description']) ?></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Full Description</label>
+                        <textarea name="description"
+                            rows="4"><?= htmlspecialchars($edit_product['description']) ?></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="checkbox-group">
+                            <input type="checkbox" name="is_featured" value="1"
+                                <?= $edit_product['is_featured'] ? 'checked' : '' ?>>
+                            <label>⭐ Mark as Featured Product</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" name="is_active" value="1"
+                                <?= $edit_product['is_active'] ? 'checked' : '' ?>>
+                            <label>✅ Product Active (visible to customers)</label>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button type="submit" class="btn">💾 Save Changes</button>
+                        <a href="?tab=products" class="btn" style="background: rgba(255,255,255,0.1);">❌ Cancel</a>
+                    </div>
+                </form>
+            </div>
+            <?php endif; ?>
+
+            <!-- Add New Product Form -->
             <div class="admin-card">
                 <h3>➕ Add New Product</h3>
                 <form method="POST">
                     <input type="hidden" name="action" value="add_product">
                     <div class="form-row">
-                        <div class="form-group"><label>Product Name *</label><input type="text" name="name" required>
+                        <div class="form-group">
+                            <label>Product Name *</label>
+                            <input type="text" name="name" required>
                         </div>
-                        <div class="form-group"><label>Price *</label><input type="number" name="price" step="0.01"
-                                required></div>
-                        <div class="form-group"><label>Stock Quantity</label><input type="number" name="stock"
-                                value="0"></div>
+                        <div class="form-group">
+                            <label>Price *</label>
+                            <input type="number" name="price" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Compare Price</label>
+                            <input type="number" name="compare_price" step="0.01" value="0">
+                        </div>
                     </div>
+
                     <div class="form-row">
+                        <div class="form-group">
+                            <label>Stock Quantity</label>
+                            <input type="number" name="stock" value="0">
+                        </div>
                         <div class="form-group">
                             <label>Category</label>
                             <select name="category_id">
@@ -667,59 +898,119 @@ $tab = $_GET['tab'] ?? 'dashboard';
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="form-group"><label>Image URL</label><input type="text" name="image_url"
-                                placeholder="https://..."></div>
+                        <div class="form-group">
+                            <label>Image URL</label>
+                            <input type="text" name="image_url" placeholder="https://...">
+                        </div>
                     </div>
-                    <div class="form-group"><label>Description</label><textarea name="description" rows="3"></textarea>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Short Description</label>
+                            <textarea name="short_description" rows="2"
+                                placeholder="Brief product description..."></textarea>
+                        </div>
                     </div>
-                    <button type="submit" class="btn">➕ Add Product</button>
+
+                    <div class="form-group">
+                        <label>Full Description</label>
+                        <textarea name="description" rows="4" placeholder="Detailed product description..."></textarea>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <input type="checkbox" name="is_featured" value="1">
+                        <label>⭐ Mark as Featured Product</label>
+                    </div>
+
+                    <button type="submit" class="btn" style="margin-top: 20px;">➕ Add Product</button>
                 </form>
             </div>
 
+            <!-- Products List with Full Actions -->
             <div class="admin-card">
                 <h3>📦 All Products (<?= count($products) ?>)</h3>
                 <div style="overflow-x: auto;">
                     <table>
                         <thead>
                             <tr>
+                                <th>Image</th>
                                 <th>Name</th>
                                 <th>Price</th>
                                 <th>Stock</th>
                                 <th>Category</th>
+                                <th>Status</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($products as $p): ?>
                             <tr>
-                                <td style="color: white;"><?= htmlspecialchars($p['name']) ?></td>
                                 <td>
-                                    <form method="POST" style="display: inline-flex; gap: 5px;">
-                                        <input type="hidden" name="action" value="update_price">
-                                        <input type="hidden" name="product_id" value="<?= $p['id'] ?>">
-                                        <input type="number" name="price" step="0.01" value="<?= $p['price'] ?>"
-                                            style="width: 100px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 5px; border-radius: 5px;">
-                                        <button type="submit" class="btn-sm btn-edit">Update</button>
-                                    </form>
+                                    <?php if ($p['image_url']): ?>
+                                    <img src="<?= htmlspecialchars($p['image_url']) ?>" class="product-image-preview"
+                                        alt="<?= htmlspecialchars($p['name']) ?>">
+                                    <?php else: ?>
+                                    <span style="color: rgba(255,255,255,0.5);">No image</span>
+                                    <?php endif; ?>
                                 </td>
+                                <td style="color: white;">
+                                    <?= htmlspecialchars($p['name']) ?>
+                                    <?php if ($p['is_featured']): ?>
+                                    <span class="premium-badge" style="font-size: 0.6rem;">⭐ Featured</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td style="color: #7e8bff;">$<?= number_format($p['price'], 2) ?></td>
                                 <td>
                                     <form method="POST" style="display: inline-flex; gap: 5px;">
                                         <input type="hidden" name="action" value="update_stock">
                                         <input type="hidden" name="product_id" value="<?= $p['id'] ?>">
                                         <input type="number" name="stock" value="<?= $p['stock_quantity'] ?? 0 ?>"
-                                            style="width: 80px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 5px; border-radius: 5px;">
+                                            style="width: 70px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 5px; border-radius: 5px;">
                                         <button type="submit" class="btn-sm btn-edit">Update</button>
                                     </form>
                                 </td>
                                 <td style="color: rgba(255,255,255,0.8);"><?= htmlspecialchars($p['cat_name'] ?? '-') ?>
                                 </td>
                                 <td>
-                                    <form method="POST" onsubmit="return confirm('Delete this product?')"
-                                        style="display: inline;">
-                                        <input type="hidden" name="action" value="delete_product">
-                                        <input type="hidden" name="product_id" value="<?= $p['id'] ?>">
-                                        <button type="submit" class="btn-sm btn-delete">Delete</button>
-                                    </form>
+                                    <span
+                                        class="status-badge <?= $p['is_active'] ? 'status-paid' : 'status-cancelled' ?>">
+                                        <?= $p['is_active'] ? 'Active' : 'Inactive' ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a href="?tab=products&edit=<?= $p['id'] ?>" class="btn-sm btn-edit">✏️ Edit</a>
+
+                                        <form method="POST" style="display: inline;"
+                                            onsubmit="return confirm('Toggle product status?')">
+                                            <input type="hidden" name="action" value="toggle_status">
+                                            <input type="hidden" name="product_id" value="<?= $p['id'] ?>">
+                                            <input type="hidden" name="current_status" value="<?= $p['is_active'] ?>">
+                                            <button type="submit"
+                                                class="btn-sm <?= $p['is_active'] ? 'btn-delete' : 'btn-success' ?>">
+                                                <?= $p['is_active'] ? '🔴 Disable' : '🟢 Enable' ?>
+                                            </button>
+                                        </form>
+
+                                        <form method="POST" style="display: inline;">
+                                            <input type="hidden" name="action" value="toggle_featured">
+                                            <input type="hidden" name="product_id" value="<?= $p['id'] ?>">
+                                            <input type="hidden" name="current_featured"
+                                                value="<?= $p['is_featured'] ?>">
+                                            <button type="submit"
+                                                class="btn-sm <?= $p['is_featured'] ? 'btn-success' : 'btn-edit' ?>">
+                                                <?= $p['is_featured'] ? '⭐' : '☆' ?> Featured
+                                            </button>
+                                        </form>
+
+                                        <form method="POST"
+                                            onsubmit="return confirm('Delete this product permanently?')"
+                                            style="display: inline;">
+                                            <input type="hidden" name="action" value="delete_product">
+                                            <input type="hidden" name="product_id" value="<?= $p['id'] ?>">
+                                            <button type="submit" class="btn-sm btn-delete">🗑️ Delete</button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -817,7 +1108,8 @@ $tab = $_GET['tab'] ?? 'dashboard';
                             <tr>
                                 <td style="color: white;"><?= htmlspecialchars($user['username']) ?>
                                     <?php if($user['is_premium']): ?><span class="premium-badge">👑
-                                        PREMIUM</span><?php endif; ?></td>
+                                        PREMIUM</span><?php endif; ?>
+                                </td>
                                 <td style="color: rgba(255,255,255,0.8);"><?= htmlspecialchars($user['email']) ?></td>
                                 <td>
                                     <form method="POST" style="display: inline;">
@@ -836,19 +1128,22 @@ $tab = $_GET['tab'] ?? 'dashboard';
                                 <td style="color: rgba(255,255,255,0.7);">
                                     <?= date('M d, Y', strtotime($user['created_at'])) ?></td>
                                 <td>
-                                    <form method="POST" style="display: inline;">
-                                        <input type="hidden" name="action" value="toggle_user">
-                                        <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
-                                        <input type="hidden" name="current_status" value="<?= $user['is_active'] ?>">
-                                        <button type="submit"
-                                            class="btn-sm btn-edit"><?= $user['is_active'] ? 'Disable' : 'Enable' ?></button>
-                                    </form>
-                                    <form method="POST" style="display: inline;"
-                                        onsubmit="return confirm('Delete this user?')">
-                                        <input type="hidden" name="action" value="delete_user">
-                                        <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
-                                        <button type="submit" class="btn-sm btn-delete">Delete</button>
-                                    </form>
+                                    <div class="action-buttons">
+                                        <form method="POST" style="display: inline;">
+                                            <input type="hidden" name="action" value="toggle_user">
+                                            <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
+                                            <input type="hidden" name="current_status"
+                                                value="<?= $user['is_active'] ?>">
+                                            <button type="submit"
+                                                class="btn-sm btn-edit"><?= $user['is_active'] ? 'Disable' : 'Enable' ?></button>
+                                        </form>
+                                        <form method="POST" style="display: inline;"
+                                            onsubmit="return confirm('Delete this user?')">
+                                            <input type="hidden" name="action" value="delete_user">
+                                            <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
+                                            <button type="submit" class="btn-sm btn-delete">Delete</button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -888,13 +1183,18 @@ $tab = $_GET['tab'] ?? 'dashboard';
                                 <td style="color: white;"><?= htmlspecialchars($cat['name']) ?></td>
                                 <td style="color: rgba(255,255,255,0.8);"><?= $prod_count ?> products</td>
                                 <td>
-                                    <form method="POST"
-                                        onsubmit="return confirm('Delete this category? Products will become uncategorized.')"
-                                        style="display: inline;">
-                                        <input type="hidden" name="action" value="delete_category">
-                                        <input type="hidden" name="cat_id" value="<?= $cat['id'] ?>">
-                                        <button type="submit" class="btn-sm btn-delete">Delete</button>
-                                    </form>
+                                    <div class="action-buttons">
+                                        <button class="btn-sm btn-edit"
+                                            onclick="editCategory(<?= $cat['id'] ?>, '<?= htmlspecialchars($cat['name']) ?>')">✏️
+                                            Edit</button>
+                                        <form method="POST"
+                                            onsubmit="return confirm('Delete this category? Products will become uncategorized.')"
+                                            style="display: inline;">
+                                            <input type="hidden" name="action" value="delete_category">
+                                            <input type="hidden" name="cat_id" value="<?= $cat['id'] ?>">
+                                            <button type="submit" class="btn-sm btn-delete">Delete</button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -902,6 +1202,37 @@ $tab = $_GET['tab'] ?? 'dashboard';
                     </table>
                 </div>
             </div>
+
+            <!-- Edit Category Modal (simple inline form) -->
+            <div id="editCategoryModal"
+                style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--admin-card-bg); padding: 30px; border-radius: 20px; z-index: 1000; min-width: 400px;">
+                <h3 style="color: #7e8bff; margin-bottom: 20px;">✏️ Edit Category</h3>
+                <form method="POST" id="editCategoryForm">
+                    <input type="hidden" name="action" value="edit_category">
+                    <input type="hidden" name="cat_id" id="edit_cat_id">
+                    <div class="form-group">
+                        <label>Category Name</label>
+                        <input type="text" name="cat_name" id="edit_cat_name" required style="width: 100%;">
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button type="submit" class="btn">Save Changes</button>
+                        <button type="button" class="btn" onclick="closeEditModal()"
+                            style="background: rgba(255,255,255,0.1);">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            <script>
+            function editCategory(id, name) {
+                document.getElementById('edit_cat_id').value = id;
+                document.getElementById('edit_cat_name').value = name;
+                document.getElementById('editCategoryModal').style.display = 'block';
+            }
+
+            function closeEditModal() {
+                document.getElementById('editCategoryModal').style.display = 'none';
+            }
+            </script>
             <?php endif; ?>
 
             <!-- COUPONS -->
